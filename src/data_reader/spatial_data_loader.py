@@ -12,6 +12,23 @@ class SpatialDataLoader:
     """
 
     def __init__(self, master_path, covariates_path):
+        """
+        Inicializa la clase SpatialDataLoader cargando los datos maestros
+        de estaciones y las covariables topográficas.
+
+        Parameters
+        ----------
+        master_path : str
+            Ruta al archivo CSV que contiene los metadatos de las estaciones
+            (ID, nombre, longitud, latitud, elevación, país).
+        covariates_path : str
+            Ruta al archivo CSV que contiene las covariables topográficas
+            para cada estación.
+
+        Returns
+        -------
+        None
+        """
 
         # Cargar master
         self.master = pd.read_csv(
@@ -42,21 +59,23 @@ class SpatialDataLoader:
 
     def load_climate_variable(self, filepath):
         """
-        Carga una variable climática desde un fichero donde:
-            - la primera fila contiene los nombres de columnas, la primera es
-              'YYYYMM' y las siguientes son los identificadores de estaciones.
-            - cada fila posterior tiene en la primera columna el año/mes en el
-              mismo formato (por ejemplo 195101) y en las demás columnas el
-              valor de la variable para esa estación y ese periodo.
+        Carga una variable climática desde un archivo CSV y la transforma
+        a formato largo.
 
-        Se transforma a formato "largo" con las columnas:
-            station_id  : código de 6 dígitos de la estación
-            year        : año numérico
-            month       : mes numérico
-            value       : valor de la variable climática
+        El archivo debe tener la primera fila como cabecera con 'YYYYMM'
+        seguido de los IDs de las estaciones. Cada fila posterior contiene
+        el período en formato YYYYMM y los valores de la variable para cada
+        estación.
 
-        :param filepath: ruta al CSV de la variable climática
-        :return: DataFrame con la estructura descrita
+        Parameters
+        ----------
+        filepath : str
+            Ruta al archivo CSV de la variable climática.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame en formato largo con columnas: station_id, year, month, value.
         """
 
         # leer csv tal cual (asumimos que el separador es coma y la primera fila
@@ -90,19 +109,144 @@ class SpatialDataLoader:
         # reordenar columnas para mayor claridad
         cols = ["station_id", "year", "month", "value"]
         df_long = df_long[cols]
+        df_long["value"] = pd.to_numeric(df_long["value"], errors='coerce')
 
         return df_long
-
-    def build_dataset(self, climate_df):
+    
+    def media_por_estacion_months_avl(self, df, station_col='station_id', value_col='value', min_months=60):
         """
-        Integra variable climática + metadatos + covariables.
+        Calcula la media de la variable climática por estación, filtrando
+        únicamente las estaciones que tienen al menos un número mínimo de
+        meses con datos válidos.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            DataFrame con los datos climáticos en formato largo
+        station_col : str
+            Nombre de la columna que contiene el ID de la estación
+        value_col : str
+            Nombre de la columna que contiene el valor de la variable climática
+        min_months : int
+            Número mínimo de meses con datos válidos requeridos para incluir
+            la estación en el cálculo de la media
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame con dos columnas: 'station_id' y la media de la variable
+            climática por estación
         """
 
-        # df = climate_df.merge(
-        #     self.master,
-        #     on="station_id",
-        #     how="left"
-        # )
+        # eliminar NaN
+        df_valid = df.dropna(subset=[value_col])
+
+        # contar meses válidos por estación
+        counts = df_valid.groupby(station_col)[value_col].count()
+
+        # estaciones con suficientes datos
+        estaciones_validas = counts[counts >= min_months].index
+
+        df_filtrado = df_valid[df_valid[station_col].isin(estaciones_validas)]
+
+        # media por estación
+        media_estacion = df_filtrado.groupby(station_col)[value_col].mean()
+
+        return media_estacion.reset_index()
+    
+    def media_por_estacion_threshold(self, df, station_col='station_id', value_col='value', threshold=0.7):
+        """
+        Calcula la media de la variable climática por estación filtrando estaciones
+        que no tengan un porcentaje mínimo de datos disponibles.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+        station_col : str
+            columna con el id de estación
+        value_col : str
+            variable climática (precipitación)
+        threshold : float
+            porcentaje mínimo de datos disponibles (0.7 = 70%)
+
+        Returns
+        -------
+        media_estacion : DataFrame
+            media de precipitación por estación
+        resumen_estaciones : DataFrame
+            info sobre porcentaje de datos disponibles
+        """
+
+        # total de meses esperados por estación
+        total_meses = df.groupby(station_col)[value_col].size()
+
+        # meses con dato válido
+        meses_validos = df.groupby(station_col)[value_col].count()
+
+        # calcular porcentaje disponible
+        porcentaje = meses_validos / total_meses
+
+        resumen = pd.DataFrame({
+            'total_meses': total_meses,
+            'meses_validos': meses_validos,
+            'porcentaje_disponible': porcentaje
+        }).reset_index()
+
+        # estaciones que cumplen el umbral
+        estaciones_validas = resumen.loc[
+            resumen['porcentaje_disponible'] >= threshold, station_col
+        ]
+
+        # filtrar dataset
+        df_filtrado = df[df[station_col].isin(estaciones_validas)]
+
+        # eliminar NaN
+        df_filtrado = df_filtrado.dropna(subset=[value_col])
+
+        # calcular media
+        media_estacion = (
+            df_filtrado
+            .groupby(station_col)[value_col]
+            .mean()
+            .reset_index(name='valor_medio')
+        )
+
+        return media_estacion, resumen
+    
+    def mean_per_station(self, climate_df):
+        """
+        Calcula el valor medio de la variable climática por estación.
+
+        Parameters
+        ----------
+        climate_df : pandas.DataFrame
+            DataFrame con los datos climáticos en formato largo.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame con el valor medio por estación.
+        """
+
+        mean_df = climate_df.groupby("station_id")["value"].mean().reset_index()
+
+        return mean_df
+
+    def join_covars(self, climate_df):
+        """
+        Integra los datos climáticos con las covariables topográficas
+        mediante un merge por el ID de la estación.
+
+        Parameters
+        ----------
+        climate_df : pandas.DataFrame
+            DataFrame con los datos climáticos en formato largo.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame integrado con las covariables topográficas.
+        """
 
         df = climate_df.merge(
             self.covariates,

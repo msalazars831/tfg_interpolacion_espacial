@@ -15,7 +15,9 @@ if __name__ == "__main__":
     # Cargamos datos y construimos dataset con covariables
     raw_precip = loader.load_climate_variable(filepath="data/ECA_blend_rr.csv")
 
-    precip = loader.build_dataset(raw_precip)
+    avg_precip = loader.mean_per_station(raw_precip)
+
+    precip = loader.join_covars(avg_precip)
 
     # Preparamos datos para el modelo
     preprocessor = SpatialPreprocessor()
