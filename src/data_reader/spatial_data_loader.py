@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import os
 
 
 class SpatialDataLoader:
@@ -51,11 +52,25 @@ class SpatialDataLoader:
             columns={"Id": "station_id"}
         )
 
+        # rellenar NaN de covariables con ceros
+        self.covariates = self.covariates.apply(pd.to_numeric, errors="coerce")
+        # self.covariates = self.covariates.replace([' NaN'], np.nan)
+        self.covariates = self.covariates.fillna(0)
+
+        # guardar el dataframe como CSV en la carpeta data
+        # self.covariates.to_csv(os.path.join('data', 'covariates_filled.csv'), index=False)
+
         self.covariates["station_id"] = (
             self.covariates["station_id"]
             .astype(str)
             .str.strip().str.zfill(6)
         )
+
+    def covariate(self):
+        return self.covariates
+    
+    def master(self):
+        return self.master
 
     def load_climate_variable(self, filepath):
         """
@@ -109,6 +124,8 @@ class SpatialDataLoader:
         # reordenar columnas para mayor claridad
         cols = ["station_id", "year", "month", "value"]
         df_long = df_long[cols]
+
+        # convertir 'value' a numérico, forzando errores a NaN (en caso de datos corruptos)
         df_long["value"] = pd.to_numeric(df_long["value"], errors='coerce')
 
         return df_long
@@ -232,6 +249,25 @@ class SpatialDataLoader:
 
         return mean_df
 
+    def remove_nan_values(self, climate_df):
+        """
+        Elimina las filas donde la columna 'value' es NaN.
+
+        Parameters
+        ----------
+        climate_df : pandas.DataFrame
+            DataFrame con los datos climáticos en formato largo.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame sin filas donde 'value' es NaN.
+        """
+
+        df_clean = climate_df.dropna(subset=["value"])
+
+        return df_clean
+
     def join_covars(self, climate_df):
         """
         Integra los datos climáticos con las covariables topográficas
@@ -251,7 +287,8 @@ class SpatialDataLoader:
         df = climate_df.merge(
             self.covariates,
             on="station_id",
-            how="left"
+            how="inner"
+            # how="left"
         )
 
         return df
