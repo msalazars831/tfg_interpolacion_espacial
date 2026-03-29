@@ -85,7 +85,7 @@ class SpatialPreprocessor:
         station_ids = df["station_id"].values
 
         # Columnas que NO deben entrar en X
-        exclude_cols = ["station_id", "value"]
+        exclude_cols = ["station_id", "value", "Longitud", "Latitud"]
 
         feature_cols = [
             col for col in df.columns
