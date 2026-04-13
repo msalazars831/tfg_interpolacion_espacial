@@ -1,6 +1,11 @@
-__pycache__/
+# Files
 *.py[cod]
 *$py.class
+*.pyc
+*.R
 
+# Folders
+__pycache__/
 data/
 literatura/
+src/draft/
