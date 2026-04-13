@@ -1,7 +1,7 @@
 import os
 
 from data_reader.spatial_data_loader import SpatialDataLoader
-from models.regression_kriging_model import RegressionKrigingModel
+from models.geostatistical_models.regression_kriging_model import RegressionKrigingModel
 from data_reader.spatial_preprocessor import SpatialPreprocessor
 from utils.tools import compare_stations, cross_validate_loo
 
