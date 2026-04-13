@@ -34,7 +34,7 @@ class VariogramAnalysis:
         self.V_exp = skg.Variogram(
             self.coords,
             self.values,
-            n_lags=8,
+            n_lags=10,
             maxlag=maxlag
         )
 
@@ -97,7 +97,7 @@ class VariogramAnalysis:
                 self.coords,
                 self.values,
                 model=m,
-                n_lags=8,
+                n_lags=10,
                 maxlag=maxlag
             )
 

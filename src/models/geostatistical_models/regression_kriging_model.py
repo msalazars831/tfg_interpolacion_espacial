@@ -1,3 +1,6 @@
+from math import dist
+from scipy.spatial.distance import pdist
+
 import numpy as np
 import pandas as pd
 
@@ -5,7 +8,7 @@ from models.base_spatial_model import BaseSpatialModel
 from sklearn.linear_model import LinearRegression
 from pykrige.ok import OrdinaryKriging
 
-from models.variogram_analysis import VariogramAnalysis
+from models.geostatistical_models.variogram_analysis import VariogramAnalysis
 
 
 class RegressionKrigingModel(BaseSpatialModel):
@@ -28,10 +31,10 @@ class RegressionKrigingModel(BaseSpatialModel):
 
         self.kriging_model = None
 
-    def variogram_model(self):
+    def get_variogram_model(self):
         return self.variogram_model
-    
-    def variogram_params(self):
+
+    def get_variogram_params(self):
         return self.variogram_params
 
     def fit_variogram(self, X, y, coords):
@@ -48,11 +51,22 @@ class RegressionKrigingModel(BaseSpatialModel):
         lon = coords[:, 0]
         lat = coords[:, 1]
 
+        # coords_array = np.column_stack((lon, lat))
+
+        # dists = pdist(coords_array)
+
+        # print("Distancias = 0:", np.sum(dists == 0)) # Distancias = 0: 24
+        # print("Distancias muy pequeñas:", np.sum(dists < 1e-10))
+
         df_vario = pd.DataFrame({
             "lon": lon,
             "lat": lat,
             "residuals": residuals
         })
+
+        # duplicados = df_vario[df_vario.duplicated(subset=["lon", "lat"], keep=False)]
+
+        # print(duplicados)
 
         variogram_analysis = VariogramAnalysis(
             df_vario,
@@ -81,6 +95,21 @@ class RegressionKrigingModel(BaseSpatialModel):
         if self.variogram_model is None or self.variogram_params is None:
             raise ValueError("Primero debes ejecutar fit_variogram()")
 
+        mask = (
+            ~np.isnan(X).any(axis=1) &
+            ~np.isnan(y) &
+            ~np.isnan(coords).any(axis=1) &
+            ~np.isinf(X).any(axis=1) &
+            ~np.isinf(y) &
+            ~np.isinf(coords).any(axis=1)
+        )
+
+        X = X[mask]
+        y = y[mask]
+        coords = coords[mask]
+
+        print("Filas eliminadas:", np.sum(~mask))
+
         # regresión
         self.regression_model.fit(X, y)
         y_pred = self.regression_model.predict(X)
@@ -89,6 +118,29 @@ class RegressionKrigingModel(BaseSpatialModel):
 
         lon = coords[:, 0]
         lat = coords[:, 1]
+
+        # coords_array = np.column_stack((lon, lat))
+
+        # dists = pdist(coords_array)
+
+        # print("Distancias = 0:", np.sum(dists == 0)) # Distancias = 0: 24
+        # print("Distancias muy pequeñas:", np.sum(dists < 1e-10)) # Distancias muy pequeñas: 24
+
+        df = pd.DataFrame({
+            "lon": lon,
+            "lat": lat,
+            "residuals": residuals
+        })
+
+        # duplicados = df[df.duplicated(subset=["lon", "lat"], keep=False)]
+
+        # print(duplicados)
+
+        # print("NaN en residuals:", np.isnan(residuals).sum())
+        # print("Inf en residuals:", np.isinf(residuals).sum())
+
+        # print("NaN en coords:", np.isnan(coords).sum())
+        # print("Inf en coords:", np.isinf(coords).sum())
 
         # kriging con variograma FIJO
         self.kriging_model = OrdinaryKriging(
@@ -117,6 +169,9 @@ class RegressionKrigingModel(BaseSpatialModel):
         # -----------------------------
         lon = coords_new[:, 0]
         lat = coords_new[:, 1]
+
+        print("NaN en lon:", np.isnan(lon).sum())
+        print("NaN en lat:", np.isnan(lat).sum())
 
         krig_res, _ = self.kriging_model.execute(
             type,
