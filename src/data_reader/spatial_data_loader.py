@@ -2,6 +2,14 @@ import pandas as pd
 import numpy as np
 import os
 
+INVALID_COVARIATE_STATION_IDS = [
+    '027518', '027368', '027070', '027046', '027105', '027338',
+    '027403', '027422', '027431', '027535', '010905', '011382',
+    '026858', '026977', '026979', '011056', '026984', '026993',
+    '027009', '027665', '011023', '027011', '027648', '027700',
+    '027701'
+]
+
 
 class SpatialDataLoader:
     """
@@ -65,6 +73,36 @@ class SpatialDataLoader:
             .astype(str)
             .str.strip().str.zfill(6)
         )
+
+    def process_covariates(self, drop_station_ids=None):
+        """
+        Procesa las covariables topográficas eliminando estaciones indicadas.
+
+        Si no se pasa una lista, elimina las estaciones definidas en
+        INVALID_COVARIATE_STATION_IDS.
+
+        Parameters
+        ----------
+        drop_station_ids : list[str] | None
+            Lista de IDs de estaciones a eliminar. Los IDs se normalizan a
+            cadenas de 6 dígitos.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame de covariables filtrado.
+        """
+
+        if drop_station_ids is None:
+            drop_station_ids = INVALID_COVARIATE_STATION_IDS
+
+        station_ids = [str(s).strip().zfill(6) for s in drop_station_ids]
+
+        self.covariates = self.covariates.loc[
+            ~self.covariates["station_id"].isin(station_ids)
+        ].copy()
+
+        return self.covariates
 
     def covariate(self):
         return self.covariates
@@ -268,7 +306,7 @@ class SpatialDataLoader:
 
         return df_clean
 
-    def join_covars(self, climate_df):
+    def join_covars(self, climate_df, covariates_df=None):
         """
         Integra los datos climáticos con las covariables topográficas
         mediante un merge por el ID de la estación.
@@ -277,6 +315,9 @@ class SpatialDataLoader:
         ----------
         climate_df : pandas.DataFrame
             DataFrame con los datos climáticos en formato largo.
+        covariates_df : pandas.DataFrame | None
+            DataFrame de covariables a usar. Si es None, se usa
+            self.covariates.
 
         Returns
         -------
@@ -284,8 +325,11 @@ class SpatialDataLoader:
             DataFrame integrado con las covariables topográficas.
         """
 
+        if covariates_df is None:
+            covariates_df = self.covariates
+
         df = climate_df.merge(
-            self.covariates,
+            covariates_df,
             on="station_id",
             how="inner"
             # how="left"
