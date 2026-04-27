@@ -52,9 +52,7 @@ class RegressionKrigingModel(BaseSpatialModel):
         lat = coords[:, 1]
 
         # coords_array = np.column_stack((lon, lat))
-
         # dists = pdist(coords_array)
-
         # print("Distancias = 0:", np.sum(dists == 0)) # Distancias = 0: 24
         # print("Distancias muy pequeñas:", np.sum(dists < 1e-10))
 
@@ -65,7 +63,6 @@ class RegressionKrigingModel(BaseSpatialModel):
         })
 
         # duplicados = df_vario[df_vario.duplicated(subset=["lon", "lat"], keep=False)]
-
         # print(duplicados)
 
         variogram_analysis = VariogramAnalysis(
@@ -108,7 +105,7 @@ class RegressionKrigingModel(BaseSpatialModel):
         y = y[mask]
         coords = coords[mask]
 
-        print("Filas eliminadas:", np.sum(~mask))
+        # print("Filas eliminadas:", np.sum(~mask))
 
         # regresión
         self.regression_model.fit(X, y)
@@ -120,25 +117,20 @@ class RegressionKrigingModel(BaseSpatialModel):
         lat = coords[:, 1]
 
         # coords_array = np.column_stack((lon, lat))
-
         # dists = pdist(coords_array)
-
         # print("Distancias = 0:", np.sum(dists == 0)) # Distancias = 0: 24
         # print("Distancias muy pequeñas:", np.sum(dists < 1e-10)) # Distancias muy pequeñas: 24
 
-        df = pd.DataFrame({
-            "lon": lon,
-            "lat": lat,
-            "residuals": residuals
-        })
-
+        # df = pd.DataFrame({
+        #     "lon": lon,
+        #     "lat": lat,
+        #     "residuals": residuals
+        # })
         # duplicados = df[df.duplicated(subset=["lon", "lat"], keep=False)]
-
         # print(duplicados)
 
         # print("NaN en residuals:", np.isnan(residuals).sum())
         # print("Inf en residuals:", np.isinf(residuals).sum())
-
         # print("NaN en coords:", np.isnan(coords).sum())
         # print("Inf en coords:", np.isinf(coords).sum())
 
@@ -170,8 +162,8 @@ class RegressionKrigingModel(BaseSpatialModel):
         lon = coords_new[:, 0]
         lat = coords_new[:, 1]
 
-        print("NaN en lon:", np.isnan(lon).sum())
-        print("NaN en lat:", np.isnan(lat).sum())
+        # print("NaN en lon:", np.isnan(lon).sum())
+        # print("NaN en lat:", np.isnan(lat).sum())
 
         krig_res, _ = self.kriging_model.execute(
             type,
