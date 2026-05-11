@@ -2,7 +2,22 @@ from sklearn.model_selection import LeaveOneOut
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.base import clone
 import numpy as np
+import os
+import joblib
 
+def save_model(model, output_dir, model_name):
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Detectar tipo de modelo
+    if hasattr(model, 'save'):  # Modelos de Keras/TensorFlow
+        file_path = os.path.join(output_dir, f"{model_name}.h5")
+        model.save(file_path)
+    else:  # Modelos de scikit-learn u otros
+        file_path = os.path.join(output_dir, f"{model_name}.pkl")
+        joblib.dump(model, file_path)
+    
+    print(f"Modelo guardado en: {file_path}")
+    return file_path
 
 def cross_validate_loo(model, X, y, coords):
 
@@ -24,6 +39,7 @@ def cross_validate_loo(model, X, y, coords):
         model.fit(X_train, y_train, coords_train)
 
 
+        # y_pred = model.predict(X_test[0].reshape(1, -1), coords_test[0].reshape(1, -1))
         y_pred = model.predict(X_test, coords_test)
 
         y_true_all.append(y_test[0])
@@ -79,14 +95,41 @@ def compare_stations(climate_df, covariates_df, id_col="station_id"):
     only_covariates = set2 - set1
 
     print("RESUMEN number of stations in each dataset")
-    print(f"Total climate stations: {len(set1)}")
-    print(f"Total covariates stations: {len(set2)}")
-    print(f"En ambos: {len(in_both)}")
-    print(f"Solo climate stations: {len(only_climate)}")
-    print(f"Solo covariates stations: {len(only_covariates)}")
+    print(f"Total stations in climate dataset: {len(set1)}")
+    print(f"Total stations in covariates dataset: {len(set2)}")
+    print(f"Intersection: {len(in_both)}")
+    print(f"Stations only in climate dataset: {len(only_climate)}")
+    print(f"Stations only in covariates dataset: {len(only_covariates)}")
 
     return {
         "in_both": in_both,
         "only_climate": only_climate,
         "only_covariates": only_covariates
     }
+
+def detect_duplicates_and_nans(covars):
+    # Identificar estaciones con coordenadas duplicadas
+    duplicados = covars[covars.duplicated(subset=['Longitud', 'Latitud'], keep=False)]
+    # Mostrar información sobre duplicados
+    if not duplicados.empty:
+        print(f"Número total de filas duplicadas: {len(duplicados)}")
+        print(f"Número de coordenadas únicas duplicadas: {duplicados[['Longitud', 'Latitud']].drop_duplicates().shape[0]}")
+        
+        # Agrupar por coordenadas y contar ocurrencias
+        coord_counts = duplicados.groupby(['Longitud', 'Latitud']).size().reset_index(name='count')
+        print("\nCoordenadas duplicadas y número de estaciones por coordenada:")
+        for _, row in coord_counts.iterrows():
+            print(f"  Longitud: {row['Longitud']}, Latitud: {row['Latitud']} -> {row['count']} estaciones")
+        
+        # Mostrar las estaciones específicas duplicadas
+        print("\nEstaciones con coordenadas duplicadas:")
+        for _, group in duplicados.groupby(['Longitud', 'Latitud']):
+            print(f"  Coordenadas ({group['Longitud'].iloc[0]}, {group['Latitud'].iloc[0]}):")
+            for idx, station in group.iterrows():
+                details = ", ".join([f"{col}: {station[col]}" for col in group.columns])
+                print(f"    Estación {idx}: {details}")
+            print()
+    else:
+        print("No se encontraron coordenadas duplicadas.")
+    # Hay 46 estaciones con coordenadas duplicadas, lo que puede causar problemas en el ajuste del variograma. 
+    # Se deben revisar y corregir estas estaciones antes de proceder con el análisis.
