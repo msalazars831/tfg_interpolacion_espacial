@@ -1,12 +1,13 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import joblib
 
 from data_reader.spatial_data_loader import SpatialDataLoader
 from models.geostatistical_models.regression_kriging_model import RegressionKrigingModel
 from data_reader.spatial_preprocessor import SpatialPreprocessor
-from models.cnn_models.dumDeep_Maria_NEW_2 import run_model
-from utils.tools import compare_stations, cross_validate_loo
+from models.cnn_models.cnn_model_old import run_model
+from utils.tools import compare_stations, cross_validate_loo, save_model
 
 # -------------------------
 # CONFIGURACIÓN
@@ -53,8 +54,16 @@ def train_regression_kriging_case(loader, preprocessor, covars, filepath, case_n
     return model, scores
 
 
+# def save_model(model, output_dir, model_name):
+#     os.makedirs(output_dir, exist_ok=True)
+#     file_path = os.path.join(output_dir, f"{model_name}.pkl")
+#     joblib.dump(model, file_path)
+#     print(f"Modelo guardado en: {file_path}")
+#     return file_path
+
+
 # ---------------------------
-# PPROGRAMA PRINCIPAL
+# PROGRAMA PRINCIPAL
 # ---------------------------
 if __name__ == "__main__":
     
@@ -63,6 +72,7 @@ if __name__ == "__main__":
         covariates_path="data/coVariables.csv"
     )
     preprocessor = SpatialPreprocessor()
+    saved_models_dir = "src/models/geostatistical_models/saved_models"
 
     # ---------------------------
     # CARGAR COVARIABLES
@@ -117,26 +127,29 @@ if __name__ == "__main__":
         "data/ECA_blend_rr.csv",
         case_name="PRECIPITACIÓN"
     )
+    save_model(rk_precip, saved_models_dir, "rk_rr")
+
 
     #### Aplicar malla de prueba al modelo de regresión-kriging para obtener 
-    # predicciones en toda la malla sobre la precipitación. ####
-    y_malla_precip_pred = rk_precip.predict(X_malla, coords_malla)
-    malla["predicted_precip"] = y_malla_precip_pred
-    # malla.to_csv("predicciones_kriging_precip.csv", index=False)
+    # # predicciones en toda la malla sobre la precipitación. ####
 
-    plt.figure(figsize=(10, 8))
-    plt.scatter(
-        malla["Longitud"],
-        malla["Latitud"],
-        c=malla["predicted_precip"],
-        cmap="viridis"
-    )
-    plt.colorbar(label="Precipitación")
-    plt.title("Predicción de precipitación en la malla")
-    plt.xlabel("Longitud")
-    plt.ylabel("Latitud")
-    plt.tight_layout()
-    plt.show()
+    # y_malla_precip_pred = rk_precip.predict(X_malla, coords_malla)
+    # malla["predicted_precip"] = y_malla_precip_pred
+    # # malla.to_csv("predicciones_kriging_precip.csv", index=False)
+
+    # plt.figure(figsize=(10, 8))
+    # plt.scatter(
+    #     malla["Longitud"],
+    #     malla["Latitud"],
+    #     c=malla["predicted_precip"],
+    #     cmap="viridis"
+    # )
+    # plt.colorbar(label="Precipitación")
+    # plt.title("Predicción de precipitación en la malla")
+    # plt.xlabel("Longitud")
+    # plt.ylabel("Latitud")
+    # plt.tight_layout()
+    # plt.show()
 
 
     # ---------------------------
@@ -149,26 +162,28 @@ if __name__ == "__main__":
         "data/ECA_blend_tg.csv",
         case_name="TEMPERATURA MEDIA"
     )
+    save_model(rk_tg, saved_models_dir, "rk_tg")
 
-    #### Aplicar malla de prueba al modelo de regresión-kriging para obtener 
-    # predicciones en toda la malla sobre la temperatura media. ####
-    y_malla_tg_pred = rk_tg.predict(X_malla, coords_malla)
-    malla["predicted_tg"] = y_malla_tg_pred
-    # malla.to_csv("predicciones_kriging_tg.csv", index=False)
 
-    plt.figure(figsize=(10, 8))
-    plt.scatter(
-        malla["Longitud"],
-        malla["Latitud"],
-        c=malla["predicted_tg"],
-        cmap="viridis"
-    )
-    plt.colorbar(label="Temperatura media")
-    plt.title("Predicción de temperatura media en la malla")
-    plt.xlabel("Longitud")
-    plt.ylabel("Latitud")
-    plt.tight_layout()
-    plt.show()
+    # #### Aplicar malla de prueba al modelo de regresión-kriging para obtener 
+    # # predicciones en toda la malla sobre la temperatura media. ####
+    # y_malla_tg_pred = rk_tg.predict(X_malla, coords_malla)
+    # malla["predicted_tg"] = y_malla_tg_pred
+    # # malla.to_csv("predicciones_kriging_tg.csv", index=False)
+
+    # plt.figure(figsize=(10, 8))
+    # plt.scatter(
+    #     malla["Longitud"],
+    #     malla["Latitud"],
+    #     c=malla["predicted_tg"],
+    #     cmap="viridis"
+    # )
+    # plt.colorbar(label="Temperatura media")
+    # plt.title("Predicción de temperatura media en la malla")
+    # plt.xlabel("Longitud")
+    # plt.ylabel("Latitud")
+    # plt.tight_layout()
+    # plt.show()
 
 
     # ---------------------------
@@ -181,26 +196,29 @@ if __name__ == "__main__":
         "data/ECA_blend_tx.csv",
         case_name="TEMPERATURA MAXIMA"
     )
+    save_model(rk_tx, saved_models_dir, "rk_tx")
 
-    #### Aplicar malla de prueba al modelo de regresión-kriging para obtener 
-    # predicciones en toda la malla sobre la temperatura máxima. ####
-    y_malla_tx_pred = rk_tx.predict(X_malla, coords_malla)
-    malla["predicted_tx"] = y_malla_tx_pred
-    # malla.to_csv("predicciones_kriging_tx.csv", index=False)
 
-    plt.figure(figsize=(10, 8))
-    plt.scatter(
-        malla["Longitud"],
-        malla["Latitud"],
-        c=malla["predicted_tx"],
-        cmap="viridis"
-    )
-    plt.colorbar(label="Temperatura máxima")
-    plt.title("Predicción de temperatura máxima en la malla")
-    plt.xlabel("Longitud")
-    plt.ylabel("Latitud")
-    plt.tight_layout()
-    plt.show()
+    # #### Aplicar malla de prueba al modelo de regresión-kriging para obtener 
+    # # predicciones en toda la malla sobre la temperatura máxima. ####
+
+    # y_malla_tx_pred = rk_tx.predict(X_malla, coords_malla)
+    # malla["predicted_tx"] = y_malla_tx_pred
+    # # malla.to_csv("predicciones_kriging_tx.csv", index=False)
+
+    # plt.figure(figsize=(10, 8))
+    # plt.scatter(
+    #     malla["Longitud"],
+    #     malla["Latitud"],
+    #     c=malla["predicted_tx"],
+    #     cmap="viridis"
+    # )
+    # plt.colorbar(label="Temperatura máxima")
+    # plt.title("Predicción de temperatura máxima en la malla")
+    # plt.xlabel("Longitud")
+    # plt.ylabel("Latitud")
+    # plt.tight_layout()
+    # plt.show()
 
 
     # ---------------------------
@@ -213,42 +231,45 @@ if __name__ == "__main__":
         "data/ECA_blend_tn.csv",
         case_name="TEMPERATURA MINIMA"
     )
+    save_model(rk_tn, saved_models_dir, "rk_tn")
+
 
     #### Aplicar malla de prueba al modelo de regresión-kriging para obtener 
     # predicciones en toda la malla sobre la temperatura mínima. ####
-    y_malla_tn_pred = rk_tn.predict(X_malla, coords_malla)
-    malla["predicted_tn"] = y_malla_tn_pred
-    # malla.to_csv("predicciones_kriging_tn.csv", index=False)
 
-    plt.figure(figsize=(10, 8))
-    plt.scatter(
-        malla["Longitud"],
-        malla["Latitud"],
-        c=malla["predicted_tn"],
-        cmap="viridis"
-    )
-    plt.colorbar(label="Temperatura mínima")
-    plt.title("Predicción de temperatura mínima en la malla")
-    plt.xlabel("Longitud")
-    plt.ylabel("Latitud")
-    plt.tight_layout()
-    plt.show()
-    print('hola')
+    # y_malla_tn_pred = rk_tn.predict(X_malla, coords_malla)
+    # malla["predicted_tn"] = y_malla_tn_pred
+    # # malla.to_csv("predicciones_kriging_tn.csv", index=False)
+
+    # plt.figure(figsize=(10, 8))
+    # plt.scatter(
+    #     malla["Longitud"],
+    #     malla["Latitud"],
+    #     c=malla["predicted_tn"],
+    #     cmap="viridis"
+    # )
+    # plt.colorbar(label="Temperatura mínima")
+    # plt.title("Predicción de temperatura mínima en la malla")
+    # plt.xlabel("Longitud")
+    # plt.ylabel("Latitud")
+    # plt.tight_layout()
+    # plt.show()
+    # print('hola')
 
 
 
     # ---------------------------
     # LOOP PARA LOS 4 CASOS
     # ---------------------------
-    for var in varNames:
+    # for var in varNames:
 
-        obs = pd.read_csv(f"data/ECA_blend_{var}.csv")
-        rk_precip, scores_precip = train_regression_kriging_case(
-            loader,
-            preprocessor,
-            covars,
-            f"data/ECA_blend_{var}.csv",
-            case_name=f"{var.upper()}"
-        )
+    #     obs = pd.read_csv(f"data/ECA_blend_{var}.csv")
+    #     rk_precip, scores_precip = train_regression_kriging_case(
+    #         loader,
+    #         preprocessor,
+    #         covars,
+    #         f"data/ECA_blend_{var}.csv",
+    #         case_name=f"{var.upper()}"
+    #     )
 
-        # run_model(covars, obs, varFilter)
+    #     # run_model(covars, obs, varFilter)
