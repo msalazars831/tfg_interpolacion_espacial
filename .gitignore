@@ -3,6 +3,8 @@
 *$py.class
 *.pyc
 *.R
+*.pkl
+*.h5
 
 # Folders
 __pycache__/
