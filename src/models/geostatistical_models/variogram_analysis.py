@@ -104,9 +104,9 @@ class VariogramAnalysis:
             results.append({
                 "model": m,
                 "rmse": V.rmse,
-                "nugget": V.parameters[0],
+                "range": V.parameters[0],
                 "sill": V.parameters[1],
-                "range": V.parameters[2]
+                "nugget": V.parameters[2]
             })
 
             if plot:
