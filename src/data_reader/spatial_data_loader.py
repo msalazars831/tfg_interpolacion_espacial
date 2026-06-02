@@ -337,3 +337,50 @@ class SpatialDataLoader:
 
         return df
     
+    def load_full_mesh(self):
+        """
+        Carga la malla completa de puntos para interpolación, incluyendo
+        latitud, longitud y covariables topográficas.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame con columnas: lat, lon, covariable1, covariable2, ...
+        """
+
+        # (covariables en toda la región, sin variable objetivo)
+        malla = pd.read_csv("data/coVariables_Gris10km.csv")
+        # eliminar espacios en blanco en los nombres de columnas
+        malla.columns = malla.columns.str.strip()
+        malla = malla.rename(columns={"Id": "station_id"})
+
+        # rellenar 0 de covariables con ceros
+        malla = malla.apply(pd.to_numeric, errors="coerce")
+        # self.covariates = self.covariates.replace([' NaN'], np.nan)
+        # malla = malla.dropna()
+        malla = malla.fillna(0)
+
+        malla["station_id"] = (malla["station_id"].astype(str).str.strip().str.zfill(6))
+
+        # X_malla, _, coords_malla, station_ids_malla = preprocessor.get_model_arrays(malla) # TODO: modificar funcion o crear nueva porque la malla no tiene y
+        # TODO: solucion temporal:
+        # Coordenadas (usar las del fichero de covariables)
+        coords_malla = malla[["Longitud", "Latitud"]].values
+        station_ids_malla = malla["station_id"].values
+        # Columnas que NO deben entrar en X_malla
+        exclude_cols = ["station_id", "Longitud", "Latitud"]
+        feature_cols = [
+            col for col in malla.columns
+            if col not in exclude_cols
+        ]
+        X_malla = malla[feature_cols].values
+
+        # Columnas que NO deben entrar en X_malla_2
+        exclude_cols_2 = ["station_id", "aspect"]
+        feature_cols_2 = [
+            col for col in malla.columns
+            if col not in exclude_cols_2
+        ]
+        malla_2 = malla[feature_cols_2].values
+
+        return malla_2, coords_malla, X_malla, station_ids_malla

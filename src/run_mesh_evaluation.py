@@ -88,8 +88,85 @@ if __name__ == "__main__":
     comparison = evaluator.compare_models(all_results)
 
     comparison.to_csv(
-        "results/model_comparison.csv",
+        "src/results/model_comparison.csv",
         index=False
     )
 
     print(comparison)
+
+
+    # Comparación de distribuciones entre RK y CNN 
+    
+    ks_rr = evaluator.compare_distributions(
+    all_results["rk_rr"],
+    all_results["cnn_rr"]
+    )
+
+    ks_tg = evaluator.compare_distributions(
+        all_results["rk_tg"],
+        all_results["cnn_tg"]
+    )
+
+    ks_tn = evaluator.compare_distributions(
+        all_results["rk_tn"],
+        all_results["cnn_tn"]
+    )
+
+    ks_tx = evaluator.compare_distributions(
+        all_results["rk_tx"],
+        all_results["cnn_tx"]
+    )
+
+    # Trandormar resultados KS en DataFrame para guardar como CSV
+    # ks_rows = []
+
+    # for comparison_name, ks_result in {
+
+    #     "precipitation": ks_rr,
+    #     "temperature_mean": ks_tg
+
+    # }.items():
+
+    #     row = {
+    #         "variable": comparison_name,
+
+    #         "ks_original":
+    #             ks_result["original"]["ks_statistic"],
+
+    #         "pvalue_original":
+    #             ks_result["original"]["pvalue"],
+
+    #         "ks_standardized":
+    #             ks_result["standardized"]["ks_statistic"],
+
+    #         "pvalue_standardized":
+    #             ks_result["standardized"]["pvalue"],
+
+    #         "ks_normalized":
+    #             ks_result["normalized"]["ks_statistic"],
+
+    #         "pvalue_normalized":
+    #             ks_result["normalized"]["pvalue"]
+    #     }
+
+    #     ks_rows.append(row)
+
+    # ks_df = pd.DataFrame(ks_rows)
+
+    ks_comparisons = {
+        "precipitation": ks_rr,
+        "temperature_mean": ks_tg,
+        "temperature_min": ks_tn,
+        "temperature_max": ks_tx
+    }
+
+    ks_df = pd.json_normalize(
+        list(ks_comparisons.values()),
+        sep="_"
+    )
+    ks_df.insert(0, "variable", list(ks_comparisons.keys()))
+
+    ks_df.to_csv(
+        "src/results/ks_comparison.csv",
+        index=False
+    )

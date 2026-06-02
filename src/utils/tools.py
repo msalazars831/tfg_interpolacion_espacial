@@ -4,6 +4,40 @@ from sklearn.base import clone
 import numpy as np
 import os
 import joblib
+from tensorflow.keras.models import load_model as keras_load_model
+
+def load_models_from_disk():
+    """
+    Carga todos los modelos guardados desde los directorios de saved_models.
+    
+    Returns:
+    dict: Diccionario con los modelos cargados donde la clave es el nombre del modelo
+          y el valor es el modelo cargado.
+    """
+    import pathlib
+    
+    models = {}
+    
+    # Rutas a los directorios de modelos
+    base_dir = pathlib.Path(__file__).parent.parent / "models"
+    geostat_dir = base_dir / "geostatistical_models" / "saved_models"
+    cnn_dir = base_dir / "cnn_models" / "saved_models"
+    
+    # Cargar modelos geoestadísticos (pickle)
+    if geostat_dir.exists():
+        for pkl_file in geostat_dir.glob("*.pkl"):
+            model_name = f"rk_{pkl_file.stem.split('_')[1]}"
+            models[model_name] = joblib.load(str(pkl_file))
+            print(f"Modelo cargado: {model_name}")
+    
+    # Cargar modelos CNN (h5/keras)
+    if cnn_dir.exists():
+        for h5_file in cnn_dir.glob("*.h5"):
+            model_name = f"cnn_{h5_file.stem.split('_')[1]}"
+            models[model_name] = keras_load_model(str(h5_file))
+            print(f"Modelo cargado: {model_name}")
+    
+    return models
 
 def save_model(model, output_dir, model_name):
     os.makedirs(output_dir, exist_ok=True)
