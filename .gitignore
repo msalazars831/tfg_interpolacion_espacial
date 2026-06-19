@@ -5,6 +5,7 @@
 *.R
 *.pkl
 *.h5
+*.csv
 
 # Folders
 __pycache__/
