@@ -54,14 +54,6 @@ def train_regression_kriging_case(loader, preprocessor, covars, filepath, case_n
     return model, scores
 
 
-# def save_model(model, output_dir, model_name):
-#     os.makedirs(output_dir, exist_ok=True)
-#     file_path = os.path.join(output_dir, f"{model_name}.pkl")
-#     joblib.dump(model, file_path)
-#     print(f"Modelo guardado en: {file_path}")
-#     return file_path
-
-
 # ---------------------------
 # PROGRAMA PRINCIPAL
 # ---------------------------
@@ -85,37 +77,6 @@ if __name__ == "__main__":
     # print(rows_with_nan)
 
 
-    # ---------------------------
-    # CARGAR MALLA DE PRUEBA
-    # ---------------------------
-    # (covariables en toda la región, sin variable objetivo)
-    malla = pd.read_csv("data/coVariables_Gris10km.csv")
-    # eliminar espacios en blanco en los nombres de columnas
-    malla.columns = malla.columns.str.strip()
-    malla = malla.rename(columns={"Id": "station_id"})
-
-    # rellenar 0 de covariables con ceros
-    malla = malla.apply(pd.to_numeric, errors="coerce")
-    # self.covariates = self.covariates.replace([' NaN'], np.nan)
-    # malla = malla.dropna()
-    malla = malla.fillna(0)
-
-    malla["station_id"] = (malla["station_id"].astype(str).str.strip().str.zfill(6))
-
-    # X_malla, _, coords_malla, station_ids_malla = preprocessor.get_model_arrays(malla) # TODO: modificar funcion o crear nueva porque la malla no tiene y
-    # TODO: solucion temporal:
-    # Coordenadas (usar las del fichero de covariables)
-    coords_malla = malla[["Longitud", "Latitud"]].values
-    station_ids_malla = malla["station_id"].values
-    # Columnas que NO deben entrar en X_malla
-    exclude_cols = ["station_id", "Longitud", "Latitud"]
-    feature_cols = [
-        col for col in malla.columns
-        if col not in exclude_cols
-    ]
-    X_malla = malla[feature_cols].values
-
-    
 
     # ---------------------------
     # CASO: PRECIPITACIÓN
@@ -128,28 +89,6 @@ if __name__ == "__main__":
         case_name="PRECIPITACIÓN"
     )
     save_model(rk_precip, saved_models_dir, "rk_rr")
-
-
-    #### Aplicar malla de prueba al modelo de regresión-kriging para obtener 
-    # # predicciones en toda la malla sobre la precipitación. ####
-
-    # y_malla_precip_pred = rk_precip.predict(X_malla, coords_malla)
-    # malla["predicted_precip"] = y_malla_precip_pred
-    # # malla.to_csv("predicciones_kriging_precip.csv", index=False)
-
-    # plt.figure(figsize=(10, 8))
-    # plt.scatter(
-    #     malla["Longitud"],
-    #     malla["Latitud"],
-    #     c=malla["predicted_precip"],
-    #     cmap="viridis"
-    # )
-    # plt.colorbar(label="Precipitación")
-    # plt.title("Predicción de precipitación en la malla")
-    # plt.xlabel("Longitud")
-    # plt.ylabel("Latitud")
-    # plt.tight_layout()
-    # plt.show()
 
 
     # ---------------------------
@@ -165,27 +104,6 @@ if __name__ == "__main__":
     save_model(rk_tg, saved_models_dir, "rk_tg")
 
 
-    # #### Aplicar malla de prueba al modelo de regresión-kriging para obtener 
-    # # predicciones en toda la malla sobre la temperatura media. ####
-    # y_malla_tg_pred = rk_tg.predict(X_malla, coords_malla)
-    # malla["predicted_tg"] = y_malla_tg_pred
-    # # malla.to_csv("predicciones_kriging_tg.csv", index=False)
-
-    # plt.figure(figsize=(10, 8))
-    # plt.scatter(
-    #     malla["Longitud"],
-    #     malla["Latitud"],
-    #     c=malla["predicted_tg"],
-    #     cmap="viridis"
-    # )
-    # plt.colorbar(label="Temperatura media")
-    # plt.title("Predicción de temperatura media en la malla")
-    # plt.xlabel("Longitud")
-    # plt.ylabel("Latitud")
-    # plt.tight_layout()
-    # plt.show()
-
-
     # ---------------------------
     # CASO: TEMPERATURA MÁXIMA
     # ---------------------------
@@ -199,28 +117,6 @@ if __name__ == "__main__":
     save_model(rk_tx, saved_models_dir, "rk_tx")
 
 
-    # #### Aplicar malla de prueba al modelo de regresión-kriging para obtener 
-    # # predicciones en toda la malla sobre la temperatura máxima. ####
-
-    # y_malla_tx_pred = rk_tx.predict(X_malla, coords_malla)
-    # malla["predicted_tx"] = y_malla_tx_pred
-    # # malla.to_csv("predicciones_kriging_tx.csv", index=False)
-
-    # plt.figure(figsize=(10, 8))
-    # plt.scatter(
-    #     malla["Longitud"],
-    #     malla["Latitud"],
-    #     c=malla["predicted_tx"],
-    #     cmap="viridis"
-    # )
-    # plt.colorbar(label="Temperatura máxima")
-    # plt.title("Predicción de temperatura máxima en la malla")
-    # plt.xlabel("Longitud")
-    # plt.ylabel("Latitud")
-    # plt.tight_layout()
-    # plt.show()
-
-
     # ---------------------------
     # CASO: TEMPERATURA MÍNIMA
     # ---------------------------
@@ -232,29 +128,6 @@ if __name__ == "__main__":
         case_name="TEMPERATURA MINIMA"
     )
     save_model(rk_tn, saved_models_dir, "rk_tn")
-
-
-    #### Aplicar malla de prueba al modelo de regresión-kriging para obtener 
-    # predicciones en toda la malla sobre la temperatura mínima. ####
-
-    # y_malla_tn_pred = rk_tn.predict(X_malla, coords_malla)
-    # malla["predicted_tn"] = y_malla_tn_pred
-    # # malla.to_csv("predicciones_kriging_tn.csv", index=False)
-
-    # plt.figure(figsize=(10, 8))
-    # plt.scatter(
-    #     malla["Longitud"],
-    #     malla["Latitud"],
-    #     c=malla["predicted_tn"],
-    #     cmap="viridis"
-    # )
-    # plt.colorbar(label="Temperatura mínima")
-    # plt.title("Predicción de temperatura mínima en la malla")
-    # plt.xlabel("Longitud")
-    # plt.ylabel("Latitud")
-    # plt.tight_layout()
-    # plt.show()
-    # print('hola')
 
 
 
