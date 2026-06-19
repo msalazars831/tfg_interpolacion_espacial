@@ -61,12 +61,12 @@ if __name__ == "__main__":
     # SAVE INTERPOLATED MAPS
     # =========================================================
 
-    # for model_name, result in all_results.items():
+    for model_name, result in all_results.items():
 
-    #     result.to_csv(
-    #         f"src/results/maps/{model_name}_interpolation.csv",
-    #         index=False
-    #     )
+        result.to_csv(
+            f"src/results/interpolated_maps/{model_name}_interpolation.csv",
+            index=False
+        )
 
 
     # =========================================================
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     print(comparison)
 
 
-    # Comparación de distribuciones entre RK y CNN 
+    # Comparación de distribuciones entre RK y CNN con el test de Kolmogorov-Smirnov
     
     ks_rr = evaluator.compare_distributions(
     all_results["rk_rr"],
