@@ -32,10 +32,11 @@ class Evaluator:
 
         results = {
             "mean": prediction.mean(),
+            "median": pd.Series(prediction).median(),
             "std": prediction.std(),
             "variance": prediction.var(),
-            "p05": DistributionMetrics.percentile(prediction, 5),
-            "p95": DistributionMetrics.percentile(prediction, 95),
+            # "p05": DistributionMetrics.percentile(prediction, 5),
+            # "p95": DistributionMetrics.percentile(prediction, 95),
             "spatial_smoothness": SpatialMetrics.spatial_smoothness(
                 coords,
                 prediction
