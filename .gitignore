@@ -6,6 +6,8 @@
 *.pkl
 *.h5
 *.csv
+*.png
+*.json
 
 # Folders
 __pycache__/
