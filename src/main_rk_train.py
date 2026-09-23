@@ -1,4 +1,7 @@
+import json
+from flask import json
 import os
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import joblib
@@ -6,7 +9,7 @@ import joblib
 from data_reader.spatial_data_loader import SpatialDataLoader
 from models.geostatistical_models.regression_kriging_model import RegressionKrigingModel
 from data_reader.spatial_preprocessor import SpatialPreprocessor
-from models.cnn_models.cnn_model_old import run_model
+# from models.nn_models.cnn_model_old import run_model
 from utils.tools import compare_stations, cross_validate_loo, save_model
 
 # -------------------------
@@ -45,13 +48,28 @@ def train_regression_kriging_case(loader, preprocessor, covars, filepath, case_n
     # Preparamos datos para el modelo
     X, y, coords, station_ids = preprocessor.get_model_arrays(data)
 
+    # Normalizamos covariables
+    mean_X = np.nanmean(X, axis=0)
+    std_X = np.nanstd(X, axis=0)
+        # Evitar división por cero
+    std_X[std_X == 0] = 1.0
+    X_norm = (X - mean_X) / std_X
+
+    # Normalizamos coordenadas
+    mean_coords = np.nanmean(coords, axis=0)
+    std_coords = np.nanstd(coords, axis=0)
+        # Evitar división por cero
+    std_coords[std_coords == 0] = 1.0
+    coords_norm = (coords - mean_coords) / std_coords
+
+
     # Ajustamos modelo de regresión-kriging
     model = RegressionKrigingModel()
-    model.fit_variogram(X, y, coords)
-    scores = cross_validate_loo(model, X, y, coords)
+    model.fit_variogram(X_norm, y, coords_norm)
+    scores = cross_validate_loo(model, X_norm, y, coords_norm)
 
     # return model, scores, data, X, y, coords
-    return model, scores
+    return model, scores, mean_X, std_X, mean_coords, std_coords
 
 
 # ---------------------------
@@ -81,7 +99,7 @@ if __name__ == "__main__":
     # ---------------------------
     # CASO: PRECIPITACIÓN
     # ---------------------------
-    rk_precip, scores_precip = train_regression_kriging_case(
+    rk_precip, scores_precip, mean_X_precip, std_X_precip, mean_coords_precip, std_coords_precip = train_regression_kriging_case(
         loader,
         preprocessor,
         covars,
@@ -94,7 +112,7 @@ if __name__ == "__main__":
     # ---------------------------
     # CASO: TEMPERATURA MEDIA
     # ---------------------------
-    rk_tg, scores_tg = train_regression_kriging_case(
+    rk_tg, scores_tg, mean_X_tg, std_X_tg, mean_coords_tg, std_coords_tg = train_regression_kriging_case(
         loader,
         preprocessor,
         covars,
@@ -107,7 +125,7 @@ if __name__ == "__main__":
     # ---------------------------
     # CASO: TEMPERATURA MÁXIMA
     # ---------------------------
-    rk_tx, scores_tx = train_regression_kriging_case(
+    rk_tx, scores_tx, mean_X_tx, std_X_tx, mean_coords_tx, std_coords_tx = train_regression_kriging_case(
         loader,
         preprocessor,
         covars,
@@ -120,7 +138,7 @@ if __name__ == "__main__":
     # ---------------------------
     # CASO: TEMPERATURA MÍNIMA
     # ---------------------------
-    rk_tn, scores_tn = train_regression_kriging_case(
+    rk_tn, scores_tn, mean_X_tn, std_X_tn, mean_coords_tn, std_coords_tn = train_regression_kriging_case(
         loader,
         preprocessor,
         covars,
@@ -130,19 +148,17 @@ if __name__ == "__main__":
     save_model(rk_tn, saved_models_dir, "rk_tn")
 
 
+    # ----------------------------------------------------
+    # GUARDAR ESTADÍSTICAS DE NORMALIZACIÓN DE CADA MODELO
+    # ----------------------------------------------------        
+    os.makedirs(saved_models_dir, exist_ok=True)
+    model_stats = {
+        "rk_rr": {"mean_X": mean_X_precip.tolist(), "std_X": std_X_precip.tolist(), "mean_coords": mean_coords_precip.tolist(), "std_coords": std_coords_precip.tolist()},
+        "rk_tg": {"mean_X": mean_X_tg.tolist(), "std_X": std_X_tg.tolist(), "mean_coords": mean_coords_tg.tolist(), "std_coords": std_coords_tg.tolist()},
+        "rk_tn": {"mean_X": mean_X_tn.tolist(), "std_X": std_X_tn.tolist(), "mean_coords": mean_coords_tn.tolist(), "std_coords": std_coords_tn.tolist()},
+        "rk_tx": {"mean_X": mean_X_tx.tolist(), "std_X": std_X_tx.tolist(), "mean_coords": mean_coords_tx.tolist(), "std_coords": std_coords_tx.tolist()},
+    }
 
-    # ---------------------------
-    # LOOP PARA LOS 4 CASOS
-    # ---------------------------
-    # for var in varNames:
-
-    #     obs = pd.read_csv(f"data/ECA_blend_{var}.csv")
-    #     rk_precip, scores_precip = train_regression_kriging_case(
-    #         loader,
-    #         preprocessor,
-    #         covars,
-    #         f"data/ECA_blend_{var}.csv",
-    #         case_name=f"{var.upper()}"
-    #     )
-
-    #     # run_model(covars, obs, varFilter)
+    json_path = os.path.join(saved_models_dir, "model_stats.json")
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(model_stats, f, ensure_ascii=False, indent=4)
