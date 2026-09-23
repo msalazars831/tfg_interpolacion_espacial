@@ -122,6 +122,7 @@ def run_model(obs_coVar, obs, varFilter):
             ]
 
             if df_month.empty:
+                #salta a la siguiente iteración si no hay datos para este mes
                 continue
 
             # -------------------------
@@ -162,6 +163,8 @@ def run_model(obs_coVar, obs, varFilter):
                 y_train = yy.iloc[indNaN1].values
 
                 if len(x_train) < 10:
+                    # al menos 10 estaciones para entrenar
+                    print(f"Insuficientes datos para {y}-{m:02d}. Se omite el entrenamiento.")
                     continue
 
                 # misma normalización global
@@ -189,4 +192,4 @@ def run_model(obs_coVar, obs, varFilter):
 
     print(f"Tiempo total de ejecución: {total_time:.2f} segundos")
     # solo un modelo final
-    return model
+    return model, mean, std
