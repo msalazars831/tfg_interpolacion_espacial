@@ -8,6 +8,7 @@
 *.csv
 *.png
 *.json
+*.txt
 
 # Folders
 __pycache__/
