@@ -14,14 +14,13 @@ if __name__ == "__main__":
         "Longitud","Latitud","topo","topo2","topo3","DistCosta",
         "DistCosta2","DistCosta3","N","NW","W","SW","S","SE","E","NE",
         "distN","distNW","distW","distSW","distS","distSE","distE","distNE",
-        "slope","vcurv", "hcurv","curv","swi"
-    ]
+        "aspect","slope","vcurv", "hcurv","curv"]
     
     loader = SpatialDataLoader(
         master_path="data/Master.txt",
         covariates_path="data/coVariables.csv"
     )
-    preprocessor = SpatialPreprocessor()
+    # preprocessor = SpatialPreprocessor()
     # ---------------------------------------------
     # DEFINIR DIRECTORIO PARA GUARDAR MODELOS
     # ---------------------------------------------
@@ -30,7 +29,7 @@ if __name__ == "__main__":
     # CARGAR COVARIABLES
     # ---------------------------
     covars = loader.covariate() 
-    covars = loader.process_covariates()
+    covars = loader.delete_duplicates_in_covariates()
 
     # ---------------------------------------------
     # CARGAR VARIABLE CLIMÁTICA *PRECIPITACIÓN*
@@ -91,7 +90,7 @@ if __name__ == "__main__":
         "nntw_tx": {"mean": mean_tx.tolist(), "std": std_tx.tolist()},
     }
 
-    json_path = os.path.join(saved_models_dir, "tw_model_stats.json")
+    json_path = os.path.join(saved_models_dir, "model_stats.json")
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(model_stats, f, ensure_ascii=False, indent=4)
 
