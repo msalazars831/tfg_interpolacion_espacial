@@ -6,37 +6,84 @@ import os
 import joblib
 from tensorflow.keras.models import load_model as keras_load_model
 
-def load_models_from_disk():
-    """
-    Carga todos los modelos guardados desde los directorios de saved_models.
+# def load_models_from_disk():
+#     """
+#     Carga todos los modelos guardados desde los directorios de saved_models.
     
-    Returns:
-    dict: Diccionario con los modelos cargados donde la clave es el nombre del modelo
-          y el valor es el modelo cargado.
+#     Returns:
+#     dict: Diccionario con los modelos cargados donde la clave es el nombre del modelo
+#           y el valor es el modelo cargado.
+#     """
+#     import pathlib
+    
+#     models = {}
+    
+#     # Rutas a los directorios de modelos
+#     base_dir = pathlib.Path(__file__).parent.parent / "models"
+#     geostat_dir = base_dir / "geostatistical_models" / "saved_models"
+#     cnn_dir = base_dir / "cnn_models" / "saved_tw_models"
+    
+#     # Cargar modelos geoestadísticos (pickle)
+#     if geostat_dir.exists():
+#         for pkl_file in geostat_dir.glob("*.pkl"):
+#             model_name = f"rk_{pkl_file.stem.split('_')[1]}"
+#             models[model_name] = joblib.load(str(pkl_file))
+#             print(f"Modelo cargado: {model_name}")
+    
+#     # Cargar modelos CNN (h5/keras)
+#     if cnn_dir.exists():
+#         # for h5_file in cnn_dir.glob("*.h5"):
+#         #     model_name = f"cnn_{h5_file.stem.split('_')[1]}"
+#         #     models[model_name] = keras_load_model(str(h5_file))
+#         #     print(f"Modelo cargado: {model_name}")
+#         for h5_file in cnn_dir.glob("*.h5"):
+#             model_name = h5_file.stem
+#             models[model_name] = keras_load_model(str(h5_file))
+#             print(f"Modelo cargado: {model_name}")
+    
+#     return models
+
+
+def load_models_from_disk(geostat_dir: str, nn_dir: str):
+    """
+    Carga los modelos guardados en los directorios especificados.
+
+    Parameters
+    ----------
+    geostat_dir : str
+        Ruta al directorio donde están guardados los modelos
+        geoestadísticos (.pkl).
+
+    nn_dir : str
+        Ruta al directorio donde están guardados los modelos NN (.h5).
+
+    Returns
+    -------
+    dict
+        Diccionario con los modelos cargados.
     """
     import pathlib
-    
+
     models = {}
-    
-    # Rutas a los directorios de modelos
-    base_dir = pathlib.Path(__file__).parent.parent / "models"
-    geostat_dir = base_dir / "geostatistical_models" / "saved_models"
-    cnn_dir = base_dir / "cnn_models" / "saved_models"
-    
+
+    # Convertir las rutas recibidas a objetos Path
+    geostat_dir = pathlib.Path(geostat_dir)
+    nn_dir = pathlib.Path(nn_dir)
+
     # Cargar modelos geoestadísticos (pickle)
     if geostat_dir.exists():
         for pkl_file in geostat_dir.glob("*.pkl"):
             model_name = f"rk_{pkl_file.stem.split('_')[1]}"
             models[model_name] = joblib.load(str(pkl_file))
             print(f"Modelo cargado: {model_name}")
-    
-    # Cargar modelos CNN (h5/keras)
-    if cnn_dir.exists():
-        for h5_file in cnn_dir.glob("*.h5"):
-            model_name = f"cnn_{h5_file.stem.split('_')[1]}"
+
+    # Cargar modelos NN
+    if nn_dir.exists():
+        for h5_file in nn_dir.glob("*.h5"):
+            model_name = h5_file.stem
             models[model_name] = keras_load_model(str(h5_file))
             print(f"Modelo cargado: {model_name}")
-    
+
     return models
 
 def save_model(model, output_dir, model_name):
@@ -66,15 +113,32 @@ def cross_validate_loo(model, X, y, coords):
 
     for train_idx, test_idx in loo.split(X):
 
+        # Separamos conjuntos de entrenamiento y test
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
         coords_train, coords_test = coords[train_idx], coords[test_idx]
 
-        model.fit(X_train, y_train, coords_train)
+        # Normalización usando solo el conjunto de entrenamiento
+        X_mean = X_train.mean(axis=0)
+        X_std = X_train.std(axis=0)
+        X_std[X_std == 0] = 1.0
 
+        coord_mean = coords_train.mean(axis=0)
+        coord_std = coords_train.std(axis=0)
+        coord_std[coord_std == 0] = 1.0
 
-        # y_pred = model.predict(X_test[0].reshape(1, -1), coords_test[0].reshape(1, -1))
-        y_pred = model.predict(X_test, coords_test)
+        X_train_norm = (X_train - X_mean) / X_std
+        X_test_norm = (X_test - X_mean) / X_std
+
+        coords_train_norm = (coords_train - coord_mean) / coord_std
+        coords_test_norm = (coords_test - coord_mean) / coord_std
+
+        # Ajustamos el modelo
+        model.fit(X_train_norm, y_train, coords_train_norm)
+
+        # Predecimos para el conjunto de test
+        # y_pred = model.predict(X_test_norm[0].reshape(1, -1), coords_test_norm[0].reshape(1, -1))
+        y_pred = model.predict(X_test_norm, coords_test_norm)
 
         y_true_all.append(y_test[0])
         y_pred_all.append(y_pred[0])
