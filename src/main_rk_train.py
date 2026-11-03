@@ -15,13 +15,12 @@ from utils.tools import compare_stations, cross_validate_loo, save_model
 # -------------------------
 # CONFIGURACIÓN
 # -------------------------
-varNames = ["rr", "tg", "tn", "tx"]
-varFilter = [
-    "Longitud","Latitud","topo","topo2","topo3","DistCosta",
-    "DistCosta2","DistCosta3","N","NW","W","SW","S","SE","E","NE",
-    "distN","distNW","distW","distSW","distS","distSE","distE","distNE",
-    "slope","vcurv", "hcurv","curv","swi"
-]
+# varNames = ["rr", "tg", "tn", "tx"]
+# varFilter = [
+#     "Longitud","Latitud","topo","topo2","topo3","DistCosta",
+#     "DistCosta2","DistCosta3","N","NW","W","SW","S","SE","E","NE",
+#     "distN","distNW","distW","distSW","distS","distSE","distE","distNE",
+#     "aspect","slope","vcurv", "hcurv","curv"]
 
 # ---------------------------
 # MODELO DE KRIGING REGRESIVO
@@ -66,7 +65,7 @@ def train_regression_kriging_case(loader, preprocessor, covars, filepath, case_n
     # Ajustamos modelo de regresión-kriging
     model = RegressionKrigingModel()
     model.fit_variogram(X_norm, y, coords_norm)
-    scores = cross_validate_loo(model, X_norm, y, coords_norm)
+    scores = cross_validate_loo(model, X, y, coords)
 
     # return model, scores, data, X, y, coords
     return model, scores, mean_X, std_X, mean_coords, std_coords
@@ -88,12 +87,19 @@ if __name__ == "__main__":
     # CARGAR COVARIABLES
     # ---------------------------
     covars = loader.covariate() 
-    covars = loader.process_covariates() # Elimina estaciones duplicadas dentro del fichero de covariables
+    covars = loader.delete_duplicates_in_covariates() # Elimina estaciones duplicadas dentro del fichero de covariables
     # Ver filas con al menos un NaN
     # rows_with_nan = covars[covars.isna().any(axis=1)]
     # print("Filas con al menos un NaN:")
     # print(rows_with_nan)
-
+    
+    # COLUMNAS DE COVAR ANTES DE LOS ENTRENOS
+    # Index(['station_id', 'Longitud', 'Latitud', 'topo', 'topo2', 'topo3',
+    #        'DistCosta', 'DistCosta2', 'DistCosta3', 'N', 'NW', 'W', 'SW', 'S',
+    #        'SE', 'E', 'NE', 'distN', 'distNW', 'distW', 'distSW', 'distS',
+    #        'distSE', 'distE', 'distNE', 'aspect', 'slope', 'vcurv', 'hcurv',
+    #        'curv', 'swi'],
+    #       dtype='object')
 
 
     # ---------------------------
