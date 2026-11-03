@@ -10,9 +10,9 @@ class VariogramAnalysis:
 
     def __init__(self, df, x_col, y_col, value_col):
         """
-        df : DataFrame con estaciones
-        x_col, y_col : coordenadas
-        value_col : variable climática (ej. precip_media)
+        df : DataFrame con las tres columnas: coordenadas y variable a analizar
+        x_col, y_col : nombre de las columnas de coordenadas
+        value_col : nombre de la columna de la variable a analizar
         """
 
         self.df = df.dropna(subset=[value_col])
