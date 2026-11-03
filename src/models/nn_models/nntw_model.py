@@ -89,82 +89,56 @@ def run_model(obs_coVar, obs, varFilter):
     # -----------------------------------------------------
     # Media temporal por estación
     # -----------------------------------------------------
-    #
     # Para cada estación se calcula la media de TODOS
     # los valores disponibles a lo largo de todos los
     # años y meses.
-    #
-    df_mean = (
-        obs.groupby("station_id")["value"]
-        .mean()
-        .reset_index()
-    )
+    df_mean = (obs.groupby("station_id")["value"].mean().reset_index())
 
     # -----------------------------------------------------
     # Añadir covariables
     # -----------------------------------------------------
-
-    df_mean = df_mean.merge(
-        obs_coVar,
-        on="station_id",
-        how="inner"
-    )
+    df_mean = df_mean.merge(obs_coVar,on="station_id",how="inner")
 
     # -----------------------------------------------------
     # Eliminar station_id
     # -----------------------------------------------------
-
-    df_mean = df_mean.drop(
-        columns=["station_id"]
-    )
+    df_mean = df_mean.drop(columns=["station_id"])
 
     # -----------------------------------------------------
     # Filtrar NaN
     # -----------------------------------------------------
-
     mask = ~df_mean["value"].isna()
     mask &= ~df_mean[varFilter].isna().any(axis=1)
-
     df_mean = df_mean.loc[mask]
 
     # -----------------------------------------------------
     # X e y del modelo base
     # -----------------------------------------------------
-
     X_base = df_mean[varFilter].values
+    # X_base = df_mean.drop(columns=["value"]).values
     y_base = df_mean["value"].values
 
     # -----------------------------------------------------
     # NORMALIZACIÓN GLOBAL
     # -----------------------------------------------------
-    #
     # La media y desviación típica se calculan SOLO con
     # los datos utilizados para entrenar el modelo base.
     #
     # Estas mismas estadísticas se utilizarán después
     # durante todos los fine-tunings.
     # -----------------------------------------------------
-
     mean = np.nanmean(X_base, axis=0)
     std = np.nanstd(X_base, axis=0)
-
     # Evitar división por cero si alguna covariable es constante
     std[std == 0] = 1.0
-
     X_base = (X_base - mean) / std
 
-    print(
-        f"Estaciones utilizadas para el modelo base: "
-        f"{len(X_base)}"
-    )
+    print(f"Estaciones utilizadas para el modelo base: "f"{len(X_base)}")
 
     # -----------------------------------------------------
     # ENTRENAR MODELO BASE
     # -----------------------------------------------------
-
-    model = build_model(
-        X_base.shape[1]
-    )
+    model = build_model(X_base.shape[1])
 
     model, base_val_mae = train_model(
         model,
@@ -174,15 +148,11 @@ def run_model(obs_coVar, obs, varFilter):
         batch_size=32
     )
 
-    print(
-        f"Modelo base entrenado. "
-        f"Val MAE: {base_val_mae:.3f}"
-    )
+    print(f"Modelo base entrenado. "f"Val MAE: {base_val_mae:.3f}")
 
     # =====================================================
     # PREPARAR FINE-TUNING
     # =====================================================
-    #
     # IMPORTANTE: No creamos otro modelo.
     #
     # El mismo modelo base, con sus pesos aprendidos,
@@ -211,9 +181,7 @@ def run_model(obs_coVar, obs, varFilter):
     )
     print("=" * 60)
 
-    years = np.sort(
-        obs["year"].dropna().unique()
-    )
+    years = np.sort(obs["year"].dropna().unique())
 
     # -----------------------------------------------------
     # Crear una columna de fecha para poder construir
