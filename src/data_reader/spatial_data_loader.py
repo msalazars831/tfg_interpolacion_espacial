@@ -39,7 +39,9 @@ class SpatialDataLoader:
         None
         """
 
-        # Cargar master
+        # -------------------------
+        # CARGAR MASTER
+        # -------------------------
         self.master = pd.read_csv(
             master_path,
             header=None,
@@ -52,29 +54,60 @@ class SpatialDataLoader:
             .str.strip().str.zfill(6)
         )
 
-        # Cargar covariables
+        # -------------------------
+        # CARGAR COVARIABLES
+        # -------------------------
         self.covariates = pd.read_csv(covariates_path)
-        # eliminar espacios en blanco en los nombres de columnas
-        self.covariates.columns = self.covariates.columns.str.strip()
-        self.covariates = self.covariates.rename(
-            columns={"Id": "station_id"}
-        )
 
-        # rellenar NaN de covariables con ceros
+        # Eliminar espacios en blanco en los nombres de columnas
+        self.covariates.columns = self.covariates.columns.str.strip()
+        self.covariates = self.covariates.rename(columns={"Id": "station_id"})
+
+        # Rellenar NaN de covariables con ceros
         self.covariates = self.covariates.apply(pd.to_numeric, errors="coerce")
+        self.covariates = self.covariates.drop(columns=["swi"], errors="ignore") # Eliminar columna 'swi' si existe, ya que tiene 842 NaN
         # self.covariates = self.covariates.replace([' NaN'], np.nan)
-        self.covariates = self.covariates.fillna(0)
+        self.covariates = self.covariates.fillna(0) # Rellenar el resto de columnas con 0
+
+        # Filas con NaN (sin ids repetidos):
+        # station_id      0
+        # Longitud        0
+        # Latitud         0
+        # topo            0
+        # topo2           0
+        # topo3           0
+        # DistCosta       0
+        # DistCosta2      0
+        # DistCosta3      0
+        # N              29
+        # NW             23
+        # W               8
+        # SW             27
+        # S              39
+        # SE             44
+        # E              20
+        # NE             28
+        # distN           0
+        # distNW          0
+        # distW           0
+        # distSW          0
+        # distS           0
+        # distSE          0
+        # distE           0
+        # distNE          0
+        # aspect         13
+        # slope           0
+        # vcurv           0
+        # hcurv           0
+        # curv            0
+        # swi           842
+        # dtype: int64
 
         # guardar el dataframe como CSV en la carpeta data
         # self.covariates.to_csv(os.path.join('data', 'covariates_filled.csv'), index=False)
+        self.covariates["station_id"] = (self.covariates["station_id"].astype(str).str.strip().str.zfill(6))
 
-        self.covariates["station_id"] = (
-            self.covariates["station_id"]
-            .astype(str)
-            .str.strip().str.zfill(6)
-        )
-
-    def process_covariates(self, drop_station_ids=None):
+    def delete_duplicates_in_covariates(self, drop_station_ids=None):
         """
         Procesa las covariables topográficas eliminando estaciones indicadas.
 
